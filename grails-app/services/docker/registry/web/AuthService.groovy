@@ -92,7 +92,14 @@ class AuthService {
   List getCurrentUserPermissions(String name) {
     User user = springSecurityService.currentUser
     log.info "Checking current user permissions for user=${user.username}, repo=${name}"
-    def aclList = user.authorities.acls.flatten()
+    def auth = user.authorities
+    def roles = auth.collect { role ->
+        Role.findByAuthority(role.authority) }.findAll { it }
+    def aclList = auth.acls.flatten()
+    if (roles.contains(Role.findByAuthority('UI_ADMIN'))) {
+        aclList = AccessControl.list()
+    }
+    log.info "currentUser.authorities: ${auth}, acls: ${auth.acls}, aclList: ${aclList}"
     getScopePermissions([type: 'repository', name: name], aclList, 'local')
   }
 

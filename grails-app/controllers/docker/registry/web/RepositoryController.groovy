@@ -17,6 +17,9 @@ class RepositoryController {
   @Value('${registry.show-permitted-repo-only}')
   boolean enableShowPermittedRepoOnly
 
+  @Value('${registry.auth.enabled}')
+  boolean authEnabled
+
   def restService
   def authService
   def springSecurityService;
@@ -47,7 +50,7 @@ class RepositoryController {
       def repos = restResponse.json.repositories
       next = repos ? repos.last() : null
       def permittedRepos = repos
-      if (enableShowPermittedRepoOnly == true) {
+      if (authEnabled && enableShowPermittedRepoOnly) {
         permittedRepos = filterPermittedRepoOnly(repos)
       }
 
@@ -67,6 +70,9 @@ class RepositoryController {
     def roles = currentUser.authorities.collect { role ->
       Role.findByAuthority(role.authority)
     }.findAll { it }
+    if (roles.contains(Role.findByAuthority('UI_ADMIN'))) {
+      return repos
+    }
     def acls = roles.collect { role ->
       RoleAccess.findAllByRole(role).acl
     }.flatten()
